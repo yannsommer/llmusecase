@@ -1,0 +1,99 @@
+// chip_test_001.c
+/**
+ * 测试用例：ADC采样测试
+ * 功能：测试12位ADC的采样精度和转换速率
+ * 预期结果：采样误差在±1LSB内，转换时间<100us
+ */
+
+#include "chip_adc.h"
+#include "test_framework.h"
+
+#define SAMPLE_COUNT 1000
+#define ADC_CHANNEL 2
+#define REFERENCE_VOLTAGE 3.3
+
+void test_adc_sampling(void) {
+    uint16_t samples[SAMPLE_COUNT];
+    float voltage;
+    int i;
+    
+    // 初始化ADC
+    adc_init(ADC_CHANNEL, ADC_REF_EXTERNAL);
+    
+    // 采集样本
+    for(i = 0; i < SAMPLE_COUNT; i++) {
+        samples[i] = adc_read();
+        delay_us(10);
+    }
+    
+    // 验证结果
+    for(i = 0; i < SAMPLE_COUNT; i++) {
+        voltage = (float)samples[i] * REFERENCE_VOLTAGE / 4096.0f;
+        TEST_ASSERT_FLOAT_WITHIN(0.001f, expected_voltage, voltage);
+    }
+}
+
+// chip_test_002.c
+/**
+ * 测试用例：SPI通信测试
+ * 功能：验证SPI接口的数据传输完整性
+ * 预期结果：数据发送接收无误，通信速率满足1MHz要求
+ */
+
+#include "chip_spi.h"
+#include "test_framework.h"
+
+#define TEST_DATA_SIZE 256
+#define SPI_SPEED 1000000
+
+void test_spi_communication(void) {
+    uint8_t tx_data[TEST_DATA_SIZE];
+    uint8_t rx_data[TEST_DATA_SIZE];
+    int i;
+    
+    // 准备测试数据
+    for(i = 0; i < TEST_DATA_SIZE; i++) {
+        tx_data[i] = i & 0xFF;
+    }
+    
+    // 配置SPI
+    spi_init(SPI_SPEED, SPI_MODE_0);
+    
+    // 发送并接收数据
+    spi_transfer(tx_data, rx_data, TEST_DATA_SIZE);
+    
+    // 验证数据
+    for(i = 0; i < TEST_DATA_SIZE; i++) {
+        TEST_ASSERT_EQUAL_UINT8(tx_data[i], rx_data[i]);
+    }
+}
+
+// test_case_description.txt
+测试用例说明：
+
+1. ADC采样测试 (chip_test_001.c)
+- 测试目的：验证ADC模块的基本功能和精度
+- 测试步骤：
+  1. 初始化ADC通道
+  2. 进行1000次采样
+  3. 计算并验证采样结果
+- 验收标准：
+  * 采样精度误差在±1LSB以内
+  * 单次转换时间不超过100us
+  * 采样值与参考电压的线性关系符合预期
+
+2. SPI通信测试 (chip_test_002.c)
+- 测试目的：验证SPI接口的可靠性
+- 测试步骤：
+  1. 初始化SPI接口配置
+  2. 发送256字节测试数据
+  3. 接收并验证返回数据
+- 验收标准：
+  * 通信速率达到1MHz
+  * 数据收发无错误
+  * 时序符合SPI协议规范
+
+注意事项：
+- 测试前确保供电电压稳定在3.3V
+- 测试环境温度应在25±5℃范围内
+- 所有测试用例应在相同的测试板上执行
